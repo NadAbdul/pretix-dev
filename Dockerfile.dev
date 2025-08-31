@@ -1,0 +1,25 @@
+# Dockerfile.dev — build Pretix from source for local dev
+FROM python:3.11-slim
+
+ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    VIRTUAL_ENV=/opt/venv
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential libpq-dev libjpeg62-turbo-dev zlib1g-dev libffi-dev git curl \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+WORKDIR /app
+
+# Install base tools
+RUN pip install --upgrade pip wheel
+
+COPY docker/entrypoint.dev.sh /entrypoint.dev.sh
+RUN chmod +x /entrypoint.dev.sh
+
+EXPOSE 8000
+CMD ["/entrypoint.dev.sh"]

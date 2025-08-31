@@ -1,0 +1,58 @@
+# docker-compose.dev.yml — run Pretix from local source with Postgres + Redis
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: pretix
+      POSTGRES_USER: pretix
+      POSTGRES_PASSWORD: pretix
+    volumes:
+      - db:/var/lib/postgresql/data
+    # platform: linux/amd64  # uncomment on Apple Silicon if needed
+
+  redis:
+    image: redis:7
+    command: ["redis-server","--appendonly","yes"]
+    volumes:
+      - redis:/data
+    # platform: linux/amd64
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    depends_on:
+      - db
+      - redis
+    ports:
+      - "8080:8000"
+    environment:
+      # Database & cache
+      DATABASE_URL: "postgres://pretix:pretix@db:5432/pretix"
+      PRETIX_DATABASE_BACKEND: "postgresql"
+      PRETIX_DATABASE_HOST: "db"
+      PRETIX_DATABASE_NAME: "pretix"
+      PRETIX_DATABASE_USER: "pretix"
+      PRETIX_DATABASE_PASSWORD: "pretix"
+      PRETIX_REDIS: "redis://redis:6379/0"
+      PRETIX_CELERY_BROKER: "redis://redis:6379/1"
+      PRETIX_CELERY_BACKEND: "redis://redis:6379/2"
+
+      # Site
+      PRETIX_SITE_URL: "http://localhost:8080"
+      PRETIX_ALLOWED_HOSTS: "localhost,127.0.0.1"
+      PRETIX_EMAIL_FROM: "admin@example.com"
+
+      # (Optional) bootstrap admin
+      PRETIX_ADMIN_EMAIL: "admin@example.com"
+      PRETIX_ADMIN_PASSWORD: "changeme123"
+
+    volumes:
+      - ./:/app
+      - media:/app/media
+    # platform: linux/amd64
+
+volumes:
+  db:
+  redis:
+  media:
